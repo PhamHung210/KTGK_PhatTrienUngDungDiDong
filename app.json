@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "BIT247895_FoodManager",
+    "slug": "bit247895-foodmanager",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": { "package": "com.bit247895.foodmanager" },
+    "ios": { "bundleIdentifier": "com.bit247895.foodmanager" }
+  }
+}
