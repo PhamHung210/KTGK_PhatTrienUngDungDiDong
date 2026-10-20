@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { Dish } from '../models/types';
+import { Dish, ValidationError } from '../models/types';
 import { dishRepo } from '../repositories/dishRepo';
 import { categoryRepo } from '../repositories/categoryRepo';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -13,7 +13,6 @@ import { PrepBadge } from '../components/DishCard';
 import { SafeImage } from '../components/SafeImage';
 import { formatPrice } from '../utils/helpers';
 import { colors, radius, space } from '../theme/theme';
-import { ValidationError } from '../models/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DishDetail'>;
 
@@ -42,38 +41,72 @@ export default function DishDetailScreen({ route, navigation }: Props) {
   useFocusEffect(useCallback(() => { load(); }, [load]));
   useEffect(() => { load(); }, [version, load]);
 
+  const executeDelete = async () => {
+    if (!dish) return;
+    try {
+      await dishRepo.remove(dish.id);
+      notifyChange();
+      navigation.goBack();
+    } catch {
+      if (Platform.OS === 'web') {
+        window.alert(t('deleteError'));
+      } else {
+        Alert.alert(t('deleteError'));
+      }
+    }
+  };
+
   const confirmDelete = () => {
     if (!dish) return;
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(t('confirmDeleteDish', { name: dish.name }));
+      if (confirmed) {
+        executeDelete();
+      }
+      return;
+    }
+
     Alert.alert(t('confirmDeleteTitle'), t('confirmDeleteDish', { name: dish.name }), [
       { text: t('cancel'), style: 'cancel' },
       {
-        text: t('delete'), style: 'destructive',
-        onPress: async () => {
-          try {
-            await dishRepo.remove(dish.id);
-            notifyChange();
-            navigation.goBack();
-          } catch {
-            Alert.alert(t('deleteError'));
-          }
-        },
+        text: t('delete'),
+        style: 'destructive',
+        onPress: executeDelete,
       },
     ]);
   };
 
   const setThumb = async (imageId: string) => {
-    try { await dishRepo.setThumbnail(id, imageId); notifyChange(); await load(); }
-    catch { Alert.alert(t('saveError')); }
+    try {
+      await dishRepo.setThumbnail(id, imageId);
+      notifyChange();
+      await load();
+    } catch {
+      if (Platform.OS === 'web') {
+        window.alert(t('saveError'));
+      } else {
+        Alert.alert(t('saveError'));
+      }
+    }
   };
 
   const addImage = async () => {
     try {
       await dishRepo.addImage(id, newUrl);
-      setNewUrl(''); setUrlError(null);
-      notifyChange(); await load();
+      setNewUrl('');
+      setUrlError(null);
+      notifyChange();
+      await load();
     } catch (e) {
-      if (e instanceof ValidationError) setUrlError(e.errors.images);
-      else Alert.alert(t('saveError'));
+      if (e instanceof ValidationError) {
+        setUrlError(e.errors.images);
+      } else {
+        if (Platform.OS === 'web') {
+          window.alert(t('saveError'));
+        } else {
+          Alert.alert(t('saveError'));
+        }
+      }
     }
   };
 

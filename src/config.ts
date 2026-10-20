@@ -20,7 +20,7 @@ export const DB_NAME = `${PROJECT_NAME}.db`;
  * Cần tạo 2 resource trên MockAPI: BIT247895_DishCategory và BIT247895_Dish.
  * Nếu để nguyên giá trị YOUR_PROJECT_ID, app chạy ở chế độ chỉ-local (không đồng bộ).
  */
-export const MOCKAPI_BASE_URL = 'https://YOUR_PROJECT_ID.mockapi.io/api/v1';
+export const MOCKAPI_BASE_URL = "https://6ad784cc95e98f36aef29999.mockapi.io/api/v1";
 
 export const isSyncConfigured = () => !MOCKAPI_BASE_URL.includes('YOUR_PROJECT_ID');
 

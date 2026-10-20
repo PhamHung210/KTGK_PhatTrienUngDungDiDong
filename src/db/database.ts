@@ -62,17 +62,19 @@ async function init() {
   return db;
 }
 
-const SEED_KEY = '@BIT247895_seeded_v1';
+const SEED_KEY = '@BIT247895_seeded_v_final';
 
 /** Dữ liệu mẫu: 3 loại món + 6 món. Id cố định để nhiều máy seed không tạo bản ghi trùng trên MockAPI. */
 export async function seedIfNeeded() {
   const db = await getDb();
-  if (await AsyncStorage.getItem(SEED_KEY)) return;
-  const row = await db.getFirstAsync<{ c: number }>('SELECT COUNT(*) AS c FROM BIT247895_DishCategory');
-  if (row && row.c > 0) {
-    await AsyncStorage.setItem(SEED_KEY, '1');
-    return;
-  }
+
+  // Dọn dẹp dữ liệu cũ để nạp lại mới
+  await db.execAsync(`
+    DELETE FROM BIT247895_DishImage;
+    DELETE FROM BIT247895_Dish;
+    DELETE FROM BIT247895_DishCategory;
+  `);
+
   const now = Date.now();
   const cats = [
     ['seed-cat-main', 'Main dishes', 'Rice, noodle and soup dishes'],
@@ -105,13 +107,45 @@ export async function seedIfNeeded() {
          VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'pending', ?)`,
         [id, name, price, prep, avail, desc, cat, now]
       );
-      for (let i = 1; i <= 2; i++) {
-        await db.runAsync(
-          `INSERT INTO BIT247895_DishImage (BIT247895_Id, BIT247895_DishId, BIT247895_ImageUrl, BIT247895_IsThumbnail)
-           VALUES (?, ?, ?, ?)`,
-          [`${id}-img${i}`, id, `https://picsum.photos/seed/${img}${i}/600/400`, i === 1 ? 1 : 0]
-        );
-      }
+      const imageMap: Record<string, [string, string]> = {
+  'seed-dish-1': [
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRp63hqqANZeXyRQKFP_zSNKqvaT4iSdS0Lya21HtzS0A&s=10',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQh9So4QwyEt3Eb7_awMm1NHjjjNrKB1xuL22tMLgumZw&s=10'
+  ],
+  'seed-dish-2': [
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSMo3e19Uddx_I9WVoMfn6sRNQRb139oI2wrIxmQ_SlAg&s=10',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSMGeJMolAva6m5sYprghhyTT_4Mc2MhXOav3ya2Y_BqQ&s=10'
+  ],
+  'seed-dish-3': [
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRuHonldaPzSamWuc_K2f6KmAaNdpFKwcpnu0n5Jf50rw&s=10',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSoBcX9StvA2LfgEurTkyuAyVGmd4hLUTJ8JmzzBuNH3w&s=10'
+  ],
+  'seed-dish-4': [
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQK8gFTSVuX9RKN5UKmRUaBsNRX3_xEUsRjeA3IiPf1uA&s=10',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0oRkE-fU5c40s6_4tOUsefsN2_XceJxgtIpYhpuRZEg&s=10'
+  ],
+  'seed-dish-5': [
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRH1lzHv653QuTBmJv_l9THqlYKBsb2gH8KF7UskH63tg&s=10',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTAHxNJtCQP78i5KUvU2y_QDa44I04FEX4p5mtOLl-d6g&s=10'
+  ],
+  'seed-dish-6': [
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSb7hn90pDK_RufMSRUDIkIl4rFOOA1VdZZ5Hb2DWMO4A&s=10',
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR7SBHhLR3OGSSh7dKtR-bLCM8XPtiQ6nK5nsL4LgJQcg&s=10'
+  ],
+};
+
+const dishImages = imageMap[id] || [
+  `https://picsum.photos/seed/${img}1/600/400`,
+  `https://picsum.photos/seed/${img}2/600/400`
+];
+
+for (let i = 0; i < dishImages.length; i++) {
+  await db.runAsync(
+    `INSERT INTO BIT247895_DishImage (BIT247895_Id, BIT247895_DishId, BIT247895_ImageUrl, BIT247895_IsThumbnail)
+     VALUES (?, ?, ?, ?)`,
+    [`${id}-img${i + 1}`, id, dishImages[i], i === 0 ? 1 : 0]
+  );
+}
     }
   });
   await AsyncStorage.setItem(SEED_KEY, '1');
